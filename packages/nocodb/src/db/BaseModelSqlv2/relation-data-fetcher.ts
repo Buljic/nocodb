@@ -217,7 +217,6 @@ export const relationDataFetcher = (param: {
       const relColOptions =
         (await relColumn.getColOptions()) as LinkToAnotherRecordColumn;
 
-      const context = baseModel.context;
       const { refContext, mmContext } = relColOptions.getRelContext();
 
       // const tn = baseModel.model.tn;
@@ -352,7 +351,6 @@ export const relationDataFetcher = (param: {
       const relColOptions =
         (await relColumn.getColOptions()) as LinkToAnotherRecordColumn;
 
-      const context = baseModel.context;
       const { refContext, mmContext } = relColOptions.getRelContext();
 
       const mmTable = await relColOptions.getMMModel();
@@ -443,8 +441,6 @@ export const relationDataFetcher = (param: {
 
         const relationColOpts =
           (await relColumn.getColOptions()) as LinkToAnotherRecordColumn;
-
-        const { refContext } = relationColOpts.getRelContext();
 
         const childCol = await relationColOpts.getChildColumn();
 
@@ -916,7 +912,6 @@ export const relationDataFetcher = (param: {
       const relColOptions =
         (await relColumn.getColOptions()) as LinkToAnotherRecordColumn;
 
-      const context = baseModel.context;
       const { mmContext, refContext } = relColOptions.getRelContext();
 
       const mmTable = await relColOptions.getMMModel();
@@ -1035,7 +1030,7 @@ export const relationDataFetcher = (param: {
         model: childTable,
       });
 
-      const childView = await relColOptions.getChildView();
+      const childView = await relColOptions.getChildView(childTable);
       let listArgs: any = {};
       if (childView) {
         const { dependencyFields } = await getAst(childBaseModel.context, {
@@ -1376,7 +1371,6 @@ export const relationDataFetcher = (param: {
       const relColOptions =
         (await relColumn.getColOptions()) as LinkToAnotherRecordColumn;
 
-      const context = baseModel.context;
       const { refContext } = relColOptions.getRelContext();
 
       const cn = (await relColOptions.getChildColumn()).column_name;
@@ -1384,7 +1378,7 @@ export const relationDataFetcher = (param: {
       const refTable = await (await relColOptions.getChildColumn()).getModel();
       const table = await (await relColOptions.getParentColumn()).getModel();
 
-      const refView = await relColOptions.getChildView();
+      const refView = await relColOptions.getChildView(refTable);
 
       const refBaseModel = await Model.getBaseModelSQL(refContext, {
         dbDriver: baseModel.dbDriver,
@@ -1637,7 +1631,7 @@ export const relationDataFetcher = (param: {
         aliasColObjMap,
       );
 
-      const targetView = await relColOptions.getChildView();
+      const targetView = await relColOptions.getChildView(parentTable);
 
       await parentBaseModel.getCustomConditionsAndApply({
         column: relColumn,
@@ -1681,7 +1675,7 @@ export const relationDataFetcher = (param: {
         await relColOptions.getChildColumn()
       ).getModel();
 
-      const childView = await relColOptions.getChildView();
+      const childView = await relColOptions.getChildView(childTable);
       const parentBaseModel = await Model.getBaseModelSQL(parentContext, {
         dbDriver: baseModel.dbDriver,
         model: parentTable,
