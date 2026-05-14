@@ -51,7 +51,7 @@ export class LookupGeneralHandler extends ComputedFieldHandler {
     const context = baseModelSqlv2.context;
     let rootApply = undefined;
 
-    const colOptions = await column.getColOptions<LookupColumn>(context);
+    const colOptions = await column.getColOptions<LookupColumn>();
 
     // Skip filter when colOptions is missing (orphaned lookup) or carries
     // a parse error — emitting an empty clause keeps the query valid.
@@ -62,7 +62,7 @@ export class LookupGeneralHandler extends ComputedFieldHandler {
       };
     }
 
-    const relationColumn = await colOptions.getRelationColumn(context);
+    const relationColumn = await colOptions.getRelationColumn();
     if (!relationColumn) {
       return {
         clause: (_qb) => {},
@@ -71,24 +71,20 @@ export class LookupGeneralHandler extends ComputedFieldHandler {
     }
 
     const relationColumnOptions =
-      await relationColumn.getColOptions<LinkToAnotherRecordColumn>(context);
+      await relationColumn.getColOptions<LinkToAnotherRecordColumn>();
     // const relationModel = await relationColumn.getModel();
     const { refContext, parentContext, childContext, mmContext } =
-      await relationColumnOptions.getParentChildContext(context);
-    const lookupColumn = await colOptions.getLookupColumn(refContext);
+      await relationColumnOptions.getParentChildContext();
+    const lookupColumn = await colOptions.getLookupColumn();
     const alias = getAlias(aliasCount);
     let qb;
     {
-      const childColumn = await relationColumnOptions.getChildColumn(
-        childContext,
-      );
-      const parentColumn = await relationColumnOptions.getParentColumn(
-        parentContext,
-      );
-      const childModel = await childColumn.getModel(childContext);
-      await childModel.getColumns(childContext);
-      const parentModel = await parentColumn.getModel(parentContext);
-      await parentModel.getColumns(parentContext);
+      const childColumn = await relationColumnOptions.getChildColumn();
+      const parentColumn = await relationColumnOptions.getParentColumn();
+      const childModel = await childColumn.getModel();
+      await childModel.getColumns();
+      const parentModel = await parentColumn.getModel();
+      await parentModel.getColumns();
 
       const childBaseModel = await Model.getBaseModelSQL(childContext, {
         model: childModel,
@@ -273,13 +269,9 @@ export class LookupGeneralHandler extends ComputedFieldHandler {
           },
         };
       } else if (relationType === RelationTypes.MANY_TO_MANY) {
-        const mmModel = await relationColumnOptions.getMMModel(mmContext);
-        const mmParentColumn = await relationColumnOptions.getMMParentColumn(
-          mmContext,
-        );
-        const mmChildColumn = await relationColumnOptions.getMMChildColumn(
-          mmContext,
-        );
+        const mmModel = await relationColumnOptions.getMMModel();
+        const mmParentColumn = await relationColumnOptions.getMMParentColumn();
+        const mmChildColumn = await relationColumnOptions.getMMChildColumn();
 
         const mmBaseModel = await Model.getBaseModelSQL(mmContext, {
           model: mmModel,

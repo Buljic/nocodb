@@ -248,8 +248,8 @@ export class ImportService {
           model.id,
         );
 
-        await model.getColumns(context);
-        await model.getViews(context);
+        await model.getColumns();
+        await model.getViews();
 
         const primaryKey = model.primaryKey;
         if (primaryKey) {
@@ -556,7 +556,7 @@ export class ImportService {
                   getParentIdentifier(colOptions.fk_parent_column_id) !==
                   modelData.id
                 )
-                  await childModel.getColumns(context);
+                  await childModel.getColumns();
 
                 const childColumn = param.data
                   .find(
@@ -669,7 +669,7 @@ export class ImportService {
                     );
 
               if (colOptions.fk_related_model_id !== modelData.id)
-                await childModel.getColumns(context);
+                await childModel.getColumns();
 
               const childColumn = param.data
                 .find((a) => a.model.id === colOptions.fk_related_model_id)
@@ -843,7 +843,7 @@ export class ImportService {
                   getParentIdentifier(colOptions.fk_parent_column_id) !==
                   modelData.id
                 )
-                  await childModel.getColumns(context);
+                  await childModel.getColumns();
 
                 const childColumn = (
                   param.data.find(
@@ -999,7 +999,7 @@ export class ImportService {
                       );
 
                 if (colOptions.fk_related_model_id !== modelData.id)
-                  await childModel.getColumns(context);
+                  await childModel.getColumns();
 
                 const childColumn = (
                   param.data.find(
@@ -1203,7 +1203,7 @@ export class ImportService {
                       );
 
                 if (colOptions.fk_related_model_id !== modelData.id)
-                  await childModel.getColumns(context);
+                  await childModel.getColumns();
 
                 const childColumn = (
                   param.data.find(
@@ -1764,7 +1764,7 @@ export class ImportService {
       const table = tableReferences.get(modelData.id);
 
       // get default view
-      await table.getViews(context);
+      await table.getViews();
       for (const view of viewsData) {
         vieProcessQueue.add(async () => {
           const viewData = withoutId({
@@ -2560,16 +2560,10 @@ export class ImportService {
 
                   if (col) {
                     const colOptions =
-                      await col.getColOptions<LinkToAnotherRecordColumn>(
-                        context,
-                      );
+                      await col.getColOptions<LinkToAnotherRecordColumn>();
 
-                    const vChildCol = await colOptions.getMMChildColumn(
-                      context,
-                    );
-                    const vParentCol = await colOptions.getMMParentColumn(
-                      context,
-                    );
+                    const vChildCol = await colOptions.getMMChildColumn();
+                    const vParentCol = await colOptions.getMMParentColumn();
 
                     mmParentChild[col.colOptions.fk_mm_model_id] = {
                       parent: vParentCol.column_name,

@@ -6,7 +6,11 @@ import {
   TableType,
 } from './Api';
 import { FormulaDataTypes } from './formula/enums';
-import { LinksVersion, LongTextAiMetaProp, RelationTypes } from '~/lib/globals';
+import {
+  LinksVersion,
+  LongTextAiMetaProp,
+  RelationTypes,
+} from '~/lib/globals';
 import { parseProp } from './helperFunctions';
 
 enum UITypes {
@@ -200,15 +204,7 @@ export const UITypesSearchTerms = {
     'hours worked',
   ],
   [UITypes.Rating]: ['Rating', 'stars', 'score', 'review', 'feedback'],
-  [UITypes.Colour]: [
-    'Colour',
-    'Color',
-    'hex',
-    'rgb',
-    'visual',
-    'palette',
-    'swatch',
-  ],
+  [UITypes.Colour]: ['Colour', 'Color', 'hex', 'rgb', 'visual', 'palette', 'swatch'],
   [UITypes.Formula]: [
     'Formula',
     'calculation',
@@ -512,7 +508,7 @@ export function isLinkV2(
     | ColumnType
     | { uidt: UITypes | string; colOptions?: any }
     | UITypes
-    | string
+    | string,
 ) {
   // Strings and simple UIType values cannot be determined as v2 without colOptions
   if (typeof col === 'string' || typeof col !== 'object') {
@@ -539,7 +535,7 @@ export function isLinkV2(
 export function isMMOrMMLike(
   col:
     | ColumnType
-    | { uidt: UITypes | string; colOptions?: any; type?: RelationTypes }
+    | { uidt: UITypes | string; colOptions?: any; type?: RelationTypes },
 ): boolean {
   if (typeof col === 'object' && isLinksOrLTAR(col)) {
     if (col.colOptions) {
@@ -571,7 +567,7 @@ export function isMMOrMMLike(
 export function isBtLikeV2Junction(
   col:
     | ColumnType
-    | { uidt: UITypes | string; colOptions?: any; type?: RelationTypes }
+    | { uidt: UITypes | string; colOptions?: any; type?: RelationTypes },
 ): boolean {
   if (typeof col === 'object' && isLinksOrLTAR(col) && col.colOptions) {
     const opts = col.colOptions as LinkToAnotherRecordType;

@@ -55,29 +55,27 @@ export const lookupOrLtarBuilder =
     const alias = `__nc_formula${getAliasCount()}`;
     const lookup =
       column.uidt === UITypes.Lookup
-        ? await column.getColOptions<LookupColumn>(context)
+        ? await column.getColOptions<LookupColumn>()
         : null;
 
     if (lookup?.error) {
       return { builder: knex.raw('?', [null]) };
     }
     {
-      const relationCol = lookup
-        ? await lookup.getRelationColumn(context)
-        : column;
+      const relationCol = lookup ? await lookup.getRelationColumn() : column;
       const relation =
-        await relationCol.getColOptions<LinkToAnotherRecordColumn>(context);
+        await relationCol.getColOptions<LinkToAnotherRecordColumn>();
       // if (relation.type !== RelationTypes.BELONGS_TO) continue;
 
       const { parentContext, childContext, mmContext, refContext } =
-        await relation.getParentChildContext(context);
+        await relation.getParentChildContext();
 
-      const childColumn = await relation.getChildColumn(childContext);
-      const parentColumn = await relation.getParentColumn(parentContext);
-      const childModel = await childColumn.getModel(childContext);
-      await childModel.getColumns(childContext);
-      const parentModel = await parentColumn.getModel(parentContext);
-      await parentModel.getColumns(parentContext);
+      const childColumn = await relation.getChildColumn();
+      const parentColumn = await relation.getParentColumn();
+      const childModel = await childColumn.getModel();
+      await childModel.getColumns();
+      const parentModel = await parentColumn.getModel();
+      await parentModel.getColumns();
 
       let relationType = isMMOrMMLike(relationCol)
         ? RelationTypes.MANY_TO_MANY
@@ -88,9 +86,7 @@ export const lookupOrLtarBuilder =
           ? RelationTypes.BELONGS_TO
           : RelationTypes.HAS_MANY;
       }
-      let lookupColumn = lookup
-        ? await lookup.getLookupColumn(refContext)
-        : null;
+      let lookupColumn = lookup ? await lookup.getLookupColumn() : null;
 
       switch (relationType) {
         case RelationTypes.BELONGS_TO:
@@ -185,9 +181,9 @@ export const lookupOrLtarBuilder =
             });
             const isSingleTargetV2 = isBtLikeV2Junction(relationCol);
             isArray = !isSingleTargetV2;
-            const mmModel = await relation.getMMModel(context);
-            const mmParentColumn = await relation.getMMParentColumn(context);
-            const mmChildColumn = await relation.getMMChildColumn(context);
+            const mmModel = await relation.getMMModel();
+            const mmParentColumn = await relation.getMMParentColumn();
+            const mmChildColumn = await relation.getMMChildColumn();
             const mmBaseModel = await Model.getBaseModelSQL(mmContext, {
               model: mmModel,
               dbDriver: baseModelSqlv2.dbDriver,
@@ -253,27 +249,25 @@ export const lookupOrLtarBuilder =
         // overwrite lookupContext from previous iteration
         const context = lookupContext;
         const nestedAlias = `__nc_formula${getAliasCount()}`;
-        const nestedLookup = await lookupColumn.getColOptions<LookupColumn>(
-          context,
-        );
-        const relationCol = await nestedLookup.getRelationColumn(context);
+        const nestedLookup = await lookupColumn.getColOptions<LookupColumn>();
+        const relationCol = await nestedLookup.getRelationColumn();
         const relation =
-          await relationCol.getColOptions<LinkToAnotherRecordColumn>(context);
+          await relationCol.getColOptions<LinkToAnotherRecordColumn>();
         // if any of the relation in nested lookup is
         // not belongs to then ignore the sort option
         // if (relation.type !== RelationTypes.BELONGS_TO) continue;
 
         const { parentContext, childContext, refContext, mmContext } =
-          await relation.getParentChildContext(context);
+          await relation.getParentChildContext();
         // reset for next iteration
         lookupContext = refContext;
 
-        const childColumn = await relation.getChildColumn(childContext);
-        const parentColumn = await relation.getParentColumn(parentContext);
-        const childModel = await childColumn.getModel(childContext);
-        await childModel.getColumns(childContext);
-        const parentModel = await parentColumn.getModel(parentContext);
-        await parentModel.getColumns(parentContext);
+        const childColumn = await relation.getChildColumn();
+        const parentColumn = await relation.getParentColumn();
+        const childModel = await childColumn.getModel();
+        await childModel.getColumns();
+        const parentModel = await parentColumn.getModel();
+        await parentModel.getColumns();
 
         const parentBaseModel = await Model.getBaseModelSQL(parentContext, {
           model: parentModel,
@@ -357,9 +351,9 @@ export const lookupOrLtarBuilder =
           case RelationTypes.MANY_TO_MANY: {
             const nestedIsSingleTargetV2 = isBtLikeV2Junction(relationCol);
             isArray = !nestedIsSingleTargetV2;
-            const mmModel = await relation.getMMModel(mmContext);
-            const mmParentColumn = await relation.getMMParentColumn(mmContext);
-            const mmChildColumn = await relation.getMMChildColumn(mmContext);
+            const mmModel = await relation.getMMModel();
+            const mmParentColumn = await relation.getMMParentColumn();
+            const mmChildColumn = await relation.getMMChildColumn();
 
             const mmBaseModel = await Model.getBaseModelSQL(mmContext, {
               model: mmModel,
@@ -411,7 +405,7 @@ export const lookupOrLtarBuilder =
 `${prevAlias}.${childColumn.title}`
 );*/
 
-        lookupColumn = await nestedLookup.getLookupColumn(refContext);
+        lookupColumn = await nestedLookup.getLookupColumn();
         prevAlias = nestedAlias;
       }
       switch (lookupColumn.uidt) {
@@ -423,9 +417,8 @@ export const lookupOrLtarBuilder =
                 baseModelSqlv2,
                 knex,
                 alias: prevAlias,
-                columnOptions: (await lookupColumn.getColOptions(
-                  context,
-                )) as RollupColumn,
+                columnOptions:
+                  (await lookupColumn.getColOptions()) as RollupColumn,
                 parentColumns,
               })
             ).builder;
@@ -453,24 +446,19 @@ export const lookupOrLtarBuilder =
             const nestedAlias = `__nc_formula${getAliasCount()}`;
             const isMMLike = isMMOrMMLike(lookupColumn);
             const relation =
-              await lookupColumn.getColOptions<LinkToAnotherRecordColumn>(
-                context,
-              );
+              await lookupColumn.getColOptions<LinkToAnotherRecordColumn>();
 
             const { parentContext, childContext, mmContext } =
-              await relation.getParentChildContext(context);
+              await relation.getParentChildContext();
 
-            const colOptions = (await lookupColumn.getColOptions(
-              context,
-            )) as LinkToAnotherRecordColumn;
-            const childColumn = await colOptions.getChildColumn(childContext);
-            const parentColumn = await colOptions.getParentColumn(
-              parentContext,
-            );
-            const childModel = await childColumn.getModel(childContext);
-            await childModel.getColumns(childContext);
-            const parentModel = await parentColumn.getModel(parentContext);
-            await parentModel.getColumns(parentContext);
+            const colOptions =
+              (await lookupColumn.getColOptions()) as LinkToAnotherRecordColumn;
+            const childColumn = await colOptions.getChildColumn();
+            const parentColumn = await colOptions.getParentColumn();
+            const childModel = await childColumn.getModel();
+            await childModel.getColumns();
+            const parentModel = await parentColumn.getModel();
+            await parentModel.getColumns();
 
             const parentBaseModel = await Model.getBaseModelSQL(parentContext, {
               model: parentModel,
@@ -536,13 +524,9 @@ export const lookupOrLtarBuilder =
               case RelationTypes.MANY_TO_MANY:
                 {
                   isArray = true;
-                  const mmModel = await relation.getMMModel(mmContext);
-                  const mmParentColumn = await relation.getMMParentColumn(
-                    mmContext,
-                  );
-                  const mmChildColumn = await relation.getMMChildColumn(
-                    mmContext,
-                  );
+                  const mmModel = await relation.getMMModel();
+                  const mmParentColumn = await relation.getMMParentColumn();
+                  const mmChildColumn = await relation.getMMChildColumn();
 
                   const mmBaseModel = await Model.getBaseModelSQL(mmContext, {
                     model: mmModel,
@@ -595,9 +579,9 @@ export const lookupOrLtarBuilder =
         case UITypes.Formula:
           {
             const formulaOption =
-              await lookupColumn.getColOptions<FormulaColumn>(context);
-            const lookupModel = await lookupColumn.getModel(context);
-            const columns = await lookupModel.getColumns(context);
+              await lookupColumn.getColOptions<FormulaColumn>();
+            const lookupModel = await lookupColumn.getModel();
+            const columns = await lookupModel.getColumns();
             parentColumns = (
               parentColumns ?? CircularRefContext.make()
             ).cloneAndAdd({
@@ -635,10 +619,8 @@ export const lookupOrLtarBuilder =
         case UITypes.Barcode:
         case UITypes.QrCode: {
           const referenceColumn = await (
-            await lookupColumn.getColOptions<BarcodeColumn | QrCodeColumn>(
-              refContext,
-            )
-          ).getValueColumn(refContext);
+            await lookupColumn.getColOptions<BarcodeColumn | QrCodeColumn>()
+          ).getValueColumn();
 
           if (isArray) {
             const qb = selectQb;

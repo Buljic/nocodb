@@ -45,6 +45,7 @@ import {
 } from '~/models';
 import { excludeAttachmentProps } from '~/utils';
 import NcConnectionMgrv2 from '~/utils/common/NcConnectionMgrv2';
+import { setModelContext } from '~/helpers/modelContext';
 
 export type QueryWithCte = {
   builder: string | Knex.QueryBuilder;
@@ -337,7 +338,7 @@ export async function populatePk(
   model: Model,
   insertObj: any,
 ) {
-  await model.getColumns(context);
+  await model.getColumns();
   for (const pkCol of model.primaryKeys) {
     if (!pkCol.meta?.ag || insertObj[pkCol.title]) continue;
     insertObj[pkCol.title] =
@@ -485,7 +486,7 @@ export function extractSortsObject(
       if (throwErrorIfInvalid && !sort.fk_column_id) {
         NcError.get(context).fieldNotFound(s.field);
       }
-      return new Sort(sort);
+      return setModelContext(new Sort(sort), context);
     });
   }
 
@@ -514,7 +515,7 @@ export function extractSortsObject(
       const fieldNameOrId = s.replace(/^~?[+-]/, '');
       NcError.get(context).fieldNotFound(fieldNameOrId);
     }
-    return new Sort(sort);
+    return setModelContext(new Sort(sort), context);
   });
 }
 
@@ -631,7 +632,7 @@ export async function getQueriedColumns(
   ncMeta?: MetaService,
 ) {
   let viewOrTableColumns: Column[] | { fk_column_id?: string }[];
-  const _columns = await model.getColumns(context, ncMeta);
+  const _columns = await model.getColumns(ncMeta);
   if (fieldsSet?.size) {
     viewOrTableColumns = _columns;
   } else {

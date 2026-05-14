@@ -388,7 +388,7 @@ export class WebhookInvoker {
       }
 
       if (hook.condition && !testHook) {
-        filters = testFilters || (await hook.getFilters(context));
+        filters = testFilters || (await hook.getFilters());
 
         if (isBulkOperation) {
           const filteredData = [];
@@ -412,7 +412,7 @@ export class WebhookInvoker {
             if (
               await validateCondition(
                 context,
-                testFilters || (await hook.getFilters(context)),
+                testFilters || (await hook.getFilters()),
                 data,
                 { client: source?.type },
               )
@@ -439,7 +439,7 @@ export class WebhookInvoker {
           if (
             !(await validateCondition(
               context,
-              testFilters || (await hook.getFilters(context)),
+              testFilters || (await hook.getFilters()),
               newData,
               { client: source?.type },
             ))

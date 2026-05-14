@@ -70,7 +70,7 @@ export async function createHmAndBtColumn(
   // save bt column
   {
     const title = getUniqueColumnAliasName(
-      await child.getColumns({ ...context, base_id: child.base_id }),
+      await child.getColumns(),
       (type === 'bt' && alias) || `${parent.title}`,
     );
 
@@ -137,13 +137,13 @@ export async function createHmAndBtColumn(
         columnId: childRelCol.id,
         req,
         context,
-        columns: await child.getCachedColumns(context),
+        columns: await child.getCachedColumns(),
       });
   }
   // save hm column
   {
     const title = getUniqueColumnAliasName(
-      await parent.getColumns({ ...context, base_id: parent.base_id }),
+      await parent.getColumns(),
       (type === 'hm' && alias) || pluralize(child.title),
     );
     const meta = {
@@ -203,7 +203,7 @@ export async function createHmAndBtColumn(
         columnId: savedColumn.id,
         req: req,
         context,
-        columns: await parent.getCachedColumns(context),
+        columns: await parent.getCachedColumns(),
       });
   }
   return savedColumn;
@@ -257,7 +257,7 @@ export async function createOOColumn(
   // save bt column
   {
     const title = getUniqueColumnAliasName(
-      await child.getColumns(childContext),
+      await child.getColumns(),
       `${parent.title}`,
     );
 
@@ -320,13 +320,13 @@ export async function createOOColumn(
       columnId: childRelCol.id,
       req,
       context: childContext,
-      columns: await child.getCachedColumns(childContext),
+      columns: await child.getCachedColumns(),
     });
   }
   // save hm column
   {
     const title = getUniqueColumnAliasName(
-      await parent.getColumns(parentContext),
+      await parent.getColumns(),
       alias || child.title,
     );
 
@@ -389,7 +389,7 @@ export async function createOOColumn(
       columnId: savedColumn.id,
       req,
       context: parentContext,
-      columns: await parent.getCachedColumns(parentContext),
+      columns: await parent.getCachedColumns(),
     });
   }
   return savedColumn;
@@ -414,10 +414,8 @@ export async function validateRollupPayload(
     colId: (payload as RollupColumnReqType).fk_relation_column_id,
   });
 
-  const relation = await column.getColOptions<LinkToAnotherRecordColumn>(
-    context,
-  );
-  const { refContext } = relation.getRelContext(context);
+  const relation = await column.getColOptions<LinkToAnotherRecordColumn>();
+  const { refContext } = relation.getRelContext();
 
   if (!relation) {
     NcError.get(context).relationFieldNotFound(
@@ -441,9 +439,9 @@ export async function validateRollupPayload(
       break;
   }
 
-  const relatedTable = await relatedColumn.getModel(refContext);
+  const relatedTable = await relatedColumn.getModel();
 
-  const rollupColumn = (await relatedTable.getColumns(refContext)).find(
+  const rollupColumn = (await relatedTable.getColumns()).find(
     (c) => c.id === (payload as RollupColumnReqType).fk_rollup_column_id,
   );
 
@@ -484,10 +482,8 @@ export async function validateLookupPayload(
     );
   }
 
-  const relation = await column.getColOptions<LinkToAnotherRecordColumn>(
-    context,
-  );
-  const { refContext } = relation.getRelContext(context);
+  const relation = await column.getColOptions<LinkToAnotherRecordColumn>();
+  const { refContext } = relation.getRelContext();
 
   // check for circular reference (must be done after getting refContext for cross-base)
   if (columnId) {
@@ -503,7 +499,7 @@ export async function validateLookupPayload(
         colId: lkCol.fk_lookup_column_id,
       }).then((c: Column) => {
         if (c && c.uidt === 'Lookup') {
-          return c.getColOptions<LookupColumn>(refContext);
+          return c.getColOptions<LookupColumn>();
         }
         return null;
       });
@@ -539,9 +535,9 @@ export async function validateLookupPayload(
       break;
   }
 
-  const relatedTable = await relatedColumn.getModel(refContext);
+  const relatedTable = await relatedColumn.getModel();
   if (
-    !(await relatedTable.getColumns(refContext)).find(
+    !(await relatedTable.getColumns()).find(
       (c) => c.id === (payload as LookupColumnReqType).fk_lookup_column_id,
     )
   )
@@ -597,17 +593,16 @@ export async function populateRollupForLTAR({
   columnMeta?: any;
   alias?: string;
 }) {
-  const model = await column.getModel(context);
+  const model = await column.getModel();
 
-  const views = await model.getViews(context);
+  const views = await model.getViews();
 
   const relatedModel = await column
-    .getColOptions<LinkToAnotherRecordColumn>(context)
-    .then((colOpt) => colOpt.getRelatedTable(context));
-  await relatedModel.getColumns(context);
+    .getColOptions<LinkToAnotherRecordColumn>()
+    .then((colOpt) => colOpt.getRelatedTable());
+  await relatedModel.getColumns();
   const pkId =
-    relatedModel.primaryKey?.id ||
-    (await relatedModel.getColumns(context))[0]?.id;
+    relatedModel.primaryKey?.id || (await relatedModel.getColumns())[0]?.id;
 
   const meta = {
     plural: columnMeta?.plural || pluralize(relatedModel.title),
@@ -617,7 +612,7 @@ export async function populateRollupForLTAR({
   await Column.insert<RollupColumn>(context, {
     uidt: UITypes.Links,
     title: getUniqueColumnAliasName(
-      await model.getColumns(context),
+      await model.getColumns(),
       alias || `${relatedModel.title} Count`,
     ),
     fk_rollup_column_id: pkId,
@@ -692,15 +687,15 @@ export const travelLookupColumn = async ({
   context: NcContext;
   column: Column;
 }): Promise<Column | null> => {
-  const lookupColOptions = await column.getColOptions<LookupColumn>(context);
+  const lookupColOptions = await column.getColOptions<LookupColumn>();
   if (lookupColOptions?.error) return null;
 
-  const relationColumn = await lookupColOptions.getRelationColumn(context);
+  const relationColumn = await lookupColOptions.getRelationColumn();
   if (!relationColumn) return null;
 
   const relationColOptions =
-    await relationColumn.getColOptions<LinkToAnotherRecordColumn>(context);
-  const { refContext } = relationColOptions.getRelContext(context);
+    await relationColumn.getColOptions<LinkToAnotherRecordColumn>();
+  const { refContext } = relationColOptions.getRelContext();
 
   const targetColumn = await Column.get(refContext, {
     colId: lookupColOptions.fk_lookup_column_id,

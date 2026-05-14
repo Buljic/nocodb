@@ -22,6 +22,11 @@ import NocoCache from '~/cache/NocoCache';
 import { NcError } from '~/helpers/catchError';
 import { extractProps } from '~/helpers/extractProps';
 import { parseMetaProp, stringifyMetaProp } from '~/utils/modelUtils';
+import {
+  getModelContext,
+  setModelContext,
+  throwMissingContext,
+} from '~/helpers/modelContext';
 
 export default class Filter implements FilterType {
   id: string;
@@ -60,30 +65,47 @@ export default class Filter implements FilterType {
   meta?: any;
   enabled?: BoolType;
 
+  get context(): NcContext {
+    const ctx = getModelContext(this);
+    if (ctx) return ctx;
+    if (this.fk_workspace_id && this.base_id) {
+      return {
+        workspace_id: this.fk_workspace_id,
+        base_id: this.base_id,
+      } as NcContext;
+    }
+    throwMissingContext('Filter');
+  }
+
   constructor(data: Filter | FilterType) {
     Object.assign(this, data);
     this.meta = parseMetaProp(this);
   }
 
-  public static castType(filter: Filter): Filter {
-    return filter && new Filter(filter);
+  public static castType(filter: Filter, context?: NcContext): Filter {
+    if (!filter) return filter;
+    const instance = new Filter(filter);
+    const ctx = context ?? getModelContext(filter);
+    if (ctx) setModelContext(instance, ctx);
+    return instance;
   }
 
   public castType(filter: Filter): Filter {
-    return filter && new Filter(filter);
+    if (!filter) return filter;
+    const instance = new Filter(filter);
+    const ctx = getModelContext(this) ?? getModelContext(filter);
+    if (ctx) setModelContext(instance, ctx);
+    return instance;
   }
 
   static async supportToggle(_context: NcContext) {
     return false;
   }
 
-  public async getModel(
-    context: NcContext,
-    ncMeta = Noco.ncMeta,
-  ): Promise<Model> {
+  public async getModel(ncMeta = Noco.ncMeta): Promise<Model> {
+    const context = this.context;
     return this.fk_view_id
       ? (await View.get(context, this.fk_view_id, false, ncMeta)).getModel(
-          context,
           ncMeta,
         )
       : Model.getByIdOrName(
@@ -390,7 +412,7 @@ export default class Filter implements FilterType {
       }
     }
 
-    return this.castType(value);
+    return this.castType(value, context);
   }
 
   static async update(
@@ -466,7 +488,7 @@ export default class Filter implements FilterType {
 
     const deleteRecursively = async (filter: Filter) => {
       if (!filter || filter.id === filter.fk_parent_id) return;
-      for (const f of (await filter?.getChildren(context, ncMeta)) || [])
+      for (const f of (await filter?.getChildren(ncMeta)) || [])
         await deleteRecursively(f);
       await ncMeta.metaDelete(
         context.workspace_id,
@@ -500,10 +522,10 @@ export default class Filter implements FilterType {
     }
   }
 
-  public getColumn(context: NcContext, ncMeta = Noco.ncMeta): Promise<Column> {
+  public getColumn(ncMeta = Noco.ncMeta): Promise<Column> {
     if (!this.fk_column_id) return null;
     return Column.get(
-      context,
+      this.context,
       {
         colId: this.fk_column_id,
       },
@@ -529,14 +551,12 @@ export default class Filter implements FilterType {
       },
     );
 
-    return filters?.map((f) => this.castType(f));
+    return filters?.map((f) => this.castType(f, context));
   }
 
-  public async getGroup(
-    context: NcContext,
-    ncMeta = Noco.ncMeta,
-  ): Promise<Filter> {
+  public async getGroup(ncMeta = Noco.ncMeta): Promise<Filter> {
     if (!this.fk_parent_id) return null;
+    const context = this.context;
     let filterObj = await NocoCache.get(
       context,
       `${CacheScope.FILTER_EXP}:${this.fk_parent_id}`,
@@ -560,12 +580,10 @@ export default class Filter implements FilterType {
     return this.castType(filterObj);
   }
 
-  public async getChildren(
-    context: NcContext,
-    ncMeta = Noco.ncMeta,
-  ): Promise<Filter[]> {
+  public async getChildren(ncMeta = Noco.ncMeta): Promise<Filter[]> {
     if (this.children) return this.children;
     if (!this.is_group || !this.id) return null;
+    const context = this.context;
     const cachedList = await NocoCache.getList(
       context,
       CacheScope.FILTER_EXP,
@@ -924,7 +942,7 @@ export default class Filter implements FilterType {
       );
       await NocoCache.set(context, `${CacheScope.FILTER_EXP}:${id}`, filterObj);
     }
-    return this.castType(filterObj);
+    return this.castType(filterObj, context);
   }
 
   static async allViewFilterList(
@@ -956,7 +974,7 @@ export default class Filter implements FilterType {
       );
     }
 
-    return filterObjs?.map((f) => this.castType(f)) || [];
+    return filterObjs?.map((f) => this.castType(f, context)) || [];
   }
 
   static async allHookFilterList(
@@ -988,7 +1006,7 @@ export default class Filter implements FilterType {
       );
     }
 
-    return filterObjs?.map((f) => this.castType(f)) || [];
+    return filterObjs?.map((f) => this.castType(f, context)) || [];
   }
 
   static async rootFilterList(
@@ -1029,7 +1047,7 @@ export default class Filter implements FilterType {
 
     return filterObjs
       ?.filter((f) => !f.fk_parent_id)
-      ?.map((f) => this.castType(f));
+      ?.map((f) => this.castType(f, context));
   }
 
   static async rootFilterListByHook(
@@ -1066,7 +1084,7 @@ export default class Filter implements FilterType {
     }
     return filterObjs
       ?.filter((f) => !f.fk_parent_id)
-      ?.map((f) => this.castType(f));
+      ?.map((f) => this.castType(f, context));
   }
 
   static async rootFilterListByRlsPolicy(
@@ -1103,7 +1121,7 @@ export default class Filter implements FilterType {
     }
     return filterObjs
       ?.filter((f) => !f.fk_parent_id)
-      ?.map((f) => this.castType(f));
+      ?.map((f) => this.castType(f, context));
   }
 
   static async rootFilterListByParentColumn(
@@ -1140,7 +1158,7 @@ export default class Filter implements FilterType {
     }
     return filterObjs
       ?.filter((f) => !f.fk_parent_id)
-      ?.map((f) => this.castType(f));
+      ?.map((f) => this.castType(f, context));
   }
 
   static async parentFilterList(
@@ -1182,7 +1200,7 @@ export default class Filter implements FilterType {
         filterObjs,
       );
     }
-    return filterObjs?.map((f) => this.castType(f));
+    return filterObjs?.map((f) => this.castType(f, context));
   }
 
   static async parentFilterListByHook(
@@ -1228,7 +1246,7 @@ export default class Filter implements FilterType {
         filterObjs,
       );
     }
-    return filterObjs?.map((f) => this.castType(f));
+    return filterObjs?.map((f) => this.castType(f, context));
   }
 
   static async parentFilterListByParentColumn(
@@ -1274,7 +1292,7 @@ export default class Filter implements FilterType {
         filterObjs,
       );
     }
-    return filterObjs?.map((f) => this.castType(f));
+    return filterObjs?.map((f) => this.castType(f, context));
   }
 
   static async hasEmptyOrNullFilters(
@@ -1356,7 +1374,7 @@ export default class Filter implements FilterType {
       );
     }
 
-    return filterObjs?.map((f) => this.castType(f)) || [];
+    return filterObjs?.map((f) => this.castType(f, context)) || [];
   }
 
   static async updateAllChildrenLogicalOp(
@@ -1376,7 +1394,7 @@ export default class Filter implements FilterType {
       if (!filter.is_group) {
         return;
       }
-      filters = await filter.getChildren(context, ncMeta);
+      filters = await filter.getChildren(ncMeta);
     }
 
     for (const child of filters || []) {
@@ -1384,7 +1402,8 @@ export default class Filter implements FilterType {
     }
   }
 
-  async extractRelatedParentMetas(context, ncMeta = Noco.ncMeta) {
+  async extractRelatedParentMetas(ncMeta = Noco.ncMeta) {
+    const context = this.context;
     let parentData:
       | {
           view: View;
@@ -1454,7 +1473,7 @@ export default class Filter implements FilterType {
       );
     }
 
-    return filterObjs?.map((f) => this.castType(f)) || [];
+    return filterObjs?.map((f) => this.castType(f, context)) || [];
   }
 
   static async rootFilterListByButtonColumn(

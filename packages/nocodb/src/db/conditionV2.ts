@@ -31,6 +31,7 @@ import {
 import { sanitize } from '~/helpers/sqlSanitize';
 import { type BarcodeColumn, BaseUser, type QrCodeColumn } from '~/models';
 import Filter from '~/models/Filter';
+import { getModelContext, setModelContext } from '~/helpers/modelContext';
 import { getAliasGenerator } from '~/utils';
 import { validateAndStringifyJson } from '~/utils/tsUtils';
 import { handleCurrentUserFilter } from '~/helpers/conditionHelpers';
@@ -112,8 +113,12 @@ const parseConditionV2 = async (
 
   let filter: Filter & { groupby?: boolean };
   if (!Array.isArray(_filter)) {
-    if (!(_filter instanceof Filter)) filter = new Filter(_filter as Filter);
-    else filter = _filter;
+    if (!(_filter instanceof Filter)) {
+      filter = new Filter(_filter as Filter);
+    } else {
+      filter = _filter;
+    }
+    if (!getModelContext(filter)) setModelContext(filter, context);
   }
   const supportToggle = await Filter.supportToggle(baseModelSqlv2.context);
   if (Array.isArray(_filter)) {
@@ -155,7 +160,7 @@ const parseConditionV2 = async (
       return { clause: () => {}, rootApply: () => {} };
     }
 
-    const children = await filter.getChildren(context);
+    const children = await filter.getChildren();
 
     const qbs = await Promise.all(
       (children || []).map((child) =>
@@ -206,7 +211,7 @@ const parseConditionV2 = async (
 
       const column = await getRefColumnIfAlias(
         context,
-        await filter.getColumn(context),
+        await filter.getColumn(),
       );
 
       if (!column) {
@@ -220,7 +225,7 @@ const parseConditionV2 = async (
         column.uidt === UITypes.Lookup ||
         column.uidt === UITypes.LinkToAnotherRecord
       ) {
-        const model = await column.getModel(context);
+        const model = await column.getModel();
         const lkQb = await generateLookupSelectQuery({
           baseModelSqlv2,
           alias: alias,
@@ -242,7 +247,7 @@ const parseConditionV2 = async (
         // if qrCode or Barcode replace it with value column
         if ([UITypes.QrCode, UITypes.Barcode].includes(column.uidt))
           filter.fk_column_id = await column
-            .getColOptions<BarcodeColumn | QrCodeColumn>(context)
+            .getColOptions<BarcodeColumn | QrCodeColumn>()
             .then((col) => col.fk_column_id);
       }
     }
@@ -251,7 +256,7 @@ const parseConditionV2 = async (
       return;
     }
 
-    const filterColumn = await filter.getColumn(context);
+    const filterColumn = await filter.getColumn();
     if (!filterColumn) {
       if (throwErrorIfInvalid) {
         NcError.get(context).fieldNotFound(filter.fk_column_id);
@@ -330,10 +335,13 @@ const parseConditionV2 = async (
     ) {
       return FieldHandler.fromBaseModel(baseModelSqlv2).applyFilter(
         filter,
-        new Column({
-          ...column,
-          uidt: getEquivalentUIType({ formulaColumn: column }) as UITypes,
-        }),
+        setModelContext(
+          new Column({
+            ...column,
+            uidt: getEquivalentUIType({ formulaColumn: column }) as UITypes,
+          }),
+          context,
+        ),
         {
           alias,
           conditionParser: parseConditionV2,
