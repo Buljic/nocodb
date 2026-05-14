@@ -442,6 +442,8 @@ export const relationDataFetcher = (param: {
         const relationColOpts =
           (await relColumn.getColOptions()) as LinkToAnotherRecordColumn;
 
+        const { refContext } = relationColOpts.getRelContext();
+
         const childCol = await relationColOpts.getChildColumn();
 
         const childTable = await childCol.getModel();

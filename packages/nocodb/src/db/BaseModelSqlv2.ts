@@ -2050,10 +2050,8 @@ class BaseModelSqlv2 implements IBaseModelSqlV2 {
                   ? `_nc_lk_${relCol.title}`
                   : relCol.title;
               const { refContext: lookupRefContext } = (
-                await relCol.getColOptions<LinkToAnotherRecordColumn>(
-                  this.context,
-                )
-              ).getRelContext(this.context);
+                await relCol.getColOptions<LinkToAnotherRecordColumn>()
+              ).getRelContext();
               proto.__columnAliases[column.title] = {
                 path: [
                   relColTitle,
