@@ -597,6 +597,114 @@ export class ColumnsService implements IColumnsService {
     });
   }
 
+  private async simpleColumnUpdate(
+    context: NcContext,
+    param: {
+      req: NcRequest;
+      columnId: string;
+      column: ColumnReqType;
+      apiVersion?: NcApiVersion;
+    },
+    {
+      table,
+      column,
+      oldColumn,
+      isSyncedColumn,
+    }: {
+      table: Model;
+      column: Column;
+      oldColumn: Column;
+      isSyncedColumn: boolean;
+    },
+    ncMeta = Noco.ncMeta,
+  ): Promise<Model | Column<any>> {
+    const updateObj: Partial<Column> = {};
+
+    if ('title' in param.column) {
+      // Block immutable system columns
+      if (
+        (column.system && TITLE_IMMUTABLE_SYSTEM_TYPES.has(column.uidt)) ||
+        column.pk
+      ) {
+        NcError.get(context).systemFieldNonModifiable();
+      }
+
+      if (isSyncedColumn) {
+        NcError.get(context).invalidRequestBody(
+          `The column '${
+            column.title || column.column_name
+          }' is a synced column and cannot be updated.`,
+        );
+      }
+
+      const trimmedTitle = param.column.title?.trim();
+
+      if (trimmedTitle && trimmedTitle.length > 255) {
+        NcError.get(context).invalidRequestBody(
+          `Column title ${trimmedTitle} exceeds 255 characters`,
+        );
+      }
+
+      if (
+        trimmedTitle &&
+        !(await Column.checkAliasAvailable(
+          context,
+          {
+            title: trimmedTitle,
+            fk_model_id: column.fk_model_id,
+            exclude_id: param.columnId,
+          },
+          ncMeta,
+        ))
+      ) {
+        NcError.get(context).duplicateAlias({
+          type: 'column',
+          alias: trimmedTitle,
+          base: context.base_id,
+          additionalTrace: {
+            table: column.fk_model_id,
+          },
+        });
+      }
+
+      updateObj.title = trimmedTitle;
+    }
+
+    if ('description' in param.column) {
+      updateObj.description = param.column.description;
+    }
+
+    await Column.update2(
+      context,
+      { colId: param.columnId, column: updateObj, isSimpleUpdate: true },
+      ncMeta,
+    );
+
+    await table.getColumns(ncMeta);
+
+    const updatedColumn = await Column.get(
+      context,
+      { colId: param.columnId },
+      ncMeta,
+    );
+
+    this.appHooksService.emit(AppEvents.COLUMN_UPDATE, {
+      table,
+      oldColumn,
+      column: updatedColumn,
+      columnId: column.id,
+      req: param.req,
+      context,
+      columns: table.columns,
+    });
+
+    if (param.apiVersion === NcApiVersion.V3) {
+      return updatedColumn;
+    }
+
+    return table;
+  }
+
   async columnUpdate(
     context: NcContext,
     param: {
@@ -1314,13 +1422,9 @@ export class ColumnsService implements IColumnsService {
                 (colBody as any).fk_display_value_column_id ?? null;
               if (resolvedDisplayValueColumnId) {
                 const colOptions =
-                  await column.getColOptions<LinkToAnotherRecordColumn>(
-                    context,
-                  );
-                // For cross-base LTAR the related model lives in a different
-                // base — use the ref context so Model.getWithInfo can find it.
+                  await column.getColOptions<LinkToAnotherRecordColumn>();
                 const { refContext: colRefContext } =
-                  colOptions.getRelContext(context);
+                  colOptions.getRelContext();
                 const relatedModel = await Model.getWithInfo(colRefContext, {
                   id: colOptions.fk_related_model_id,
                 });
@@ -6099,7 +6203,7 @@ export class ColumnsService implements IColumnsService {
 
       if (capture) {
         capture.assocModelId = assocModel.id;
-        const assocViews = await assocModel.getViews(context);
+        const assocViews = await assocModel.getViews();
         capture.assocDefaultViewId = assocViews?.[0]?.id;
         capture.reverseColumnId = parentRelCol.id;
         capture.assocChildColId = childCol.id;
