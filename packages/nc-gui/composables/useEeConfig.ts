@@ -86,6 +86,7 @@ export const useEeConfig = createSharedComposable(() => {
   const blockInterfaceViewWidget = computed(() => true)
   const blockInterfaceIframeWidget = computed(() => true)
   const blockInterfaceUserFilters = computed(() => true)
+  const blockCopyViewSettingFromOther = computed(() => true)
   const blockInterfaceToolbarToggles = computed(() => true)
   const blockInterfaceDrafts = computed(() => true)
   const blockInterfacePreviewAs = computed(() => true)
@@ -512,6 +513,7 @@ export const useEeConfig = createSharedComposable(() => {
     blockAddNewInterface,
     isInterfacePageLimitReached,
     blockInterfaceMultiViz,
+    blockCopyViewSettingFromOther,
     blockInterfaceMetricColorConditions,
     blockInterfacePivotWidget,
     blockInterfaceViewWidget,
