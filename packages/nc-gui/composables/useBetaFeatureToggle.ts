@@ -195,6 +195,15 @@ const FEATURES = [
     version: 3,
     isEngineering: false,
   },
+  {
+    id: 'minimal_base_sections',
+    title: 'Minimal section style',
+    description: 'Render base sidebar sections as plain text headers — no folder icon, no member indentation.',
+    enabled: false,
+    version: 1,
+    isEngineering: false,
+    isEE: true,
+  },
 ] as const
 
 export const FEATURE_FLAG = Object.fromEntries(FEATURES.map((feature) => [feature.id.toUpperCase(), feature.id])) as Record<
