@@ -141,6 +141,7 @@ export enum MetaTable {
   RLS_POLICIES = 'nc_rls_policies',
   RLS_POLICY_SUBJECTS = 'nc_rls_policy_subjects',
   VIEW_SECTIONS = 'nc_view_sections',
+  BASE_SECTIONS = 'nc_base_sections',
   CHAT_SESSIONS = 'nc_chat_sessions',
   CHAT_MESSAGES = 'nc_chat_messages',
   /** @deprecated Documents now live in nc_models_v2 (type='document'). Kept for legacy data cleanup. */
@@ -311,6 +312,7 @@ export const orderedMetaTables = [
   MetaTable.FORM_VIEW,
   MetaTable.SHARED_VIEWS,
   MetaTable.VIEW_SECTIONS,
+  MetaTable.BASE_SECTIONS,
 
   // Sort / Filter / Hook
   MetaTable.ROW_COLOR_CONDITIONS,
@@ -577,6 +579,7 @@ export enum CacheScope {
   RECORD_TEMPLATE = 'recordTemplate',
   RLS_POLICY = 'rlsPolicy',
   VIEW_SECTION = 'viewSection',
+  BASE_SECTION = 'baseSection',
   CHAT_SESSION = 'chatSession',
   DOCUMENT = 'document',
   DOC_CONTENT = 'docContent',
